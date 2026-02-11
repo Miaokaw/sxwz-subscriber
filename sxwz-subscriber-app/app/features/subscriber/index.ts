@@ -1,0 +1,1 @@
+export { AppSubscriber } from "./components/app-subscriber";
