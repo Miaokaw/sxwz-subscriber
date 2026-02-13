@@ -1,4 +1,3 @@
-use reqwest::header::SET_COOKIE;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Deserialize)]
@@ -37,7 +36,6 @@ struct LoginResp {
 
 #[tauri::command]
 async fn check_login_status(qrcode_key: String) -> Result<LoginResp, String> {
-  println!("Checking login status for qrcode_key: {}", qrcode_key);
 
   let api = format!(
     "https://passport.bilibili.com/x/passport-login/web/qrcode/poll?qrcode_key={}",
@@ -64,8 +62,6 @@ async fn check_login_status(qrcode_key: String) -> Result<LoginResp, String> {
 
     let data = poll_resp.data.ok_or_else(|| "No data in response".to_string())?;
 
-    println!("Login status code: {}, message: {}", data.code, data.message);
-
     Ok(LoginResp {
         status: data.code,
         message: data.message,
@@ -84,9 +80,6 @@ async fn get_login_qrdata() -> Result<QRData, String> {
         .map_err(|e| e.to_string())?;
 
     let qr_resp: QRResp = serde_json::from_str(&body).map_err(|e| e.to_string())?;
-
-    println!("Received QR data: {:?}", qr_resp.data);
-
     Ok(qr_resp.data)
 }
 

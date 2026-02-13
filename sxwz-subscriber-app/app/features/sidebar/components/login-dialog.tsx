@@ -31,7 +31,7 @@ export function LoginDialog() {
     const [open, setOpen] = useState(false);
 
     const user = useContext(UserContext);
-    const dispatch = useContext(UserDispatchContext);
+    const userDispatch = useContext(UserDispatchContext);
 
     const timerRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -58,12 +58,12 @@ export function LoginDialog() {
             if (res.status === 0) {
                 setStatus(LoginStatus.Success);
                 if (res.cookies) localStorage.setItem("cookies", res.cookies);
-                const user = {
+                const testUser = {
                     name: "1",
                     uid: "132132",
                     avatar: "/asserts/头像.jpg"
                 } as UserInfo;
-                dispatch({ type: "SET_USER", payload: user });
+                userDispatch({ type: "SET_USER", payload: testUser });
                 if (timerRef.current) clearInterval(timerRef.current);
                 timerRef.current = null;
                 return;

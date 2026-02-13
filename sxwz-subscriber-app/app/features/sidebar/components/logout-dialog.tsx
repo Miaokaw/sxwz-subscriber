@@ -16,18 +16,23 @@ import { Label } from "~/components/ui/label"
 import { LogOutIcon } from "lucide-react"
 
 import { type UserInfo } from "../model/user-info"
+import { useContext } from "react"
+import { UserDispatchContext } from "../hooks/UserContext"
+
 
 export function LogoutDialog() {
 
-
+    const userDispatch = useContext(UserDispatchContext);
+    function onLogout() {
+        userDispatch({ type: "CLEAR_USER" });
+    }
     // const qrcode = await invoke<QRData>("get_login_qrcode");
 
     // const dataUrl = await QRCode.toDataURL(qrcode.url, { width: 240, margin: 1 });
 
     return (
-        <DropdownMenuItem>
+        <DropdownMenuItem onClick={() => onLogout()}>
             <LogOutIcon /> 注销
         </DropdownMenuItem>
-
     )
 }

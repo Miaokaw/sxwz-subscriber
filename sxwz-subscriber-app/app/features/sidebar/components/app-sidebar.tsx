@@ -14,9 +14,9 @@ import {
 } from "~/components/ui/sidebar"
 
 import { NavUser } from "./nav-user"
-import { type UserInfo } from "../model/user-info"
 
 import { NavLink } from "react-router"
+import { UserProvider } from "../hooks/UserContext"
 
 export function AppSidebar() {
     const [activeItem, setActiveItem] = useState<typeof navItems.items[0] | undefined>(undefined);
@@ -28,7 +28,9 @@ export function AppSidebar() {
     return (
         <Sidebar variant="inset">
             <SidebarHeader>
-                <NavUser />
+                <UserProvider>
+                    <NavUser />
+                </UserProvider>
             </SidebarHeader>
             <SidebarContent>
                 <SidebarGroup>
