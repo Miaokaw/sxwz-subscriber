@@ -13,20 +13,19 @@ import { Label } from "~/components/ui/label"
 import QRCode from "qrcode"
 
 import { invoke } from "@tauri-apps/api/core"
+import { } from "@tauri-apps/api/image"
 
 import { LogInIcon } from "lucide-react"
 
-import { useState, useEffect, useRef, useContext } from "react"
+import { useState, useEffect, useRef, useContext, use } from "react"
 
-import { LoginStatus, statusMap } from "../model/login"
-import type { QRData, LoginResp } from "../model/login"
+import { LoginStatus, statusMap, type LoginStatusPostData, type QRCodeData, type UserInfoData } from "../model/login"
 import { UserDispatchContext, UserContext } from "../hooks/UserContext"
-import { type UserInfo } from "../model/user-info"
 
 
 export function LoginDialog() {
     const [qrCode, setQrCode] = useState<string>("");
-    const [qrKey, setQrKey] = useState<string>("");
+    const [qrcodeKey, setQrCodeKey] = useState<string>("");
     const [status, setStatus] = useState<LoginStatus>(LoginStatus.Loading);
     const [open, setOpen] = useState(false);
 
@@ -37,10 +36,10 @@ export function LoginDialog() {
 
     function onRefresh() {
         const refresh = async () => {
-            const qrData = await invoke<QRData>("get_login_qrdata");
-            const qrCode = await QRCode.toDataURL(qrData.url, { width: 200, margin: 1 });
+            const data = await invoke<QRCodeData>("get_qrcode_url");
+            const qrCode = await QRCode.toDataURL(data.url, { width: 200, margin: 1 });
             setQrCode(qrCode);
-            setQrKey(qrData.qrcode_key);
+            setQrCodeKey(data.qrcode_key);
         }
 
         setStatus(LoginStatus.Loading);
@@ -54,34 +53,42 @@ export function LoginDialog() {
         if (status === LoginStatus.Loading && user && open) return;
 
         const poll = async () => {
-            const res = await invoke<LoginResp>("check_login_status", { qrcodeKey: qrKey });
-            if (res.status === 0) {
-                setStatus(LoginStatus.Success);
-                if (res.cookies) localStorage.setItem("cookies", res.cookies);
-                const testUser = {
-                    name: "1",
-                    uid: "132132",
-                    avatar: "/asserts/头像.jpg"
-                } as UserInfo;
-                userDispatch({ type: "SET_USER", payload: testUser });
-                if (timerRef.current) clearInterval(timerRef.current);
-                timerRef.current = null;
+            try {
+                const data = await invoke<LoginStatusPostData>("get_qrcode_status", { qrcodeKey: qrcodeKey });
+
+                if (data.code === 0) {
+                    setStatus(LoginStatus.Success);
+                    const user = await invoke<UserInfoData>("get_user_info", { sessData: data.sess_data });
+
+                    const userInfo = {
+                        name: user.name,
+                        uid: user.mid.toString(),
+                        avatar: user.face,
+                    }
+                    userDispatch({ type: "SET_USER", payload: userInfo });
+                    if (timerRef.current) clearInterval(timerRef.current);
+                    timerRef.current = null;
+                    return;
+                }
+
+                if (data.code === 86090) {
+                    setStatus(LoginStatus.WaitingForConfirm);
+                    return;
+                }
+
+                if (data.code === 86038) {
+                    setStatus(LoginStatus.Outdated);
+                    if (timerRef.current) clearInterval(timerRef.current);
+                    timerRef.current = null;
+                    return;
+                }
+
+
+                setStatus(LoginStatus.WaitingForScan);
+            } catch (e) {
+                console.error("error", e);
                 return;
             }
-
-            if (res.status === 86038) {
-                setStatus(LoginStatus.Outdated);
-                if (timerRef.current) clearInterval(timerRef.current);
-                timerRef.current = null;
-                return;
-            }
-
-            if (res.status === 86090) {
-                setStatus(LoginStatus.WaitingForConfirm);
-                return;
-            }
-
-            setStatus(LoginStatus.WaitingForScan);
         };
 
         timerRef.current = setInterval(poll, 1000);

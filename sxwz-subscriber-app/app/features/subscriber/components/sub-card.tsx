@@ -14,23 +14,18 @@ import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-shell";
 
 import { type SubInfo } from "../model/sub-info"
-import { ChartColumnIcon, ExternalLinkIcon, FlameIcon, Ghost, HeartIcon, Loader2Icon, ShipIcon, StarIcon, TrashIcon, User, UserIcon, UsersIcon } from "lucide-react"
+import { ChartColumnIcon, ExternalLinkIcon, FlameIcon, HeartIcon, Loader2Icon, ShipIcon, StarIcon, TrashIcon, User, UserIcon, UsersIcon } from "lucide-react"
 
 import { useState, useEffect } from "react";
 import { Button } from "~/components/ui/button";
+import { loadImage } from "~/lib/utils";
 
 export function SubCard({ info }: { info: SubInfo }) {
-
-    async function loadCover(url: string) {
-        const bytes = await invoke<number[]>("fetch_image", { url });
-        const blob = new Blob([new Uint8Array(bytes)], { type: "image/jpeg" });
-        return URL.createObjectURL(blob);
-    }
 
     const [coverBlobUrl, setCoverBlobUrl] = useState<string | null>(null);
 
     useEffect(() => {
-        loadCover(info.cover).then(setCoverBlobUrl);
+        loadImage(info.cover).then(setCoverBlobUrl);
     }, [info.cover]);
 
     return (

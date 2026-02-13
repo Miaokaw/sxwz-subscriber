@@ -23,6 +23,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 function userReducer(user: UserInfo | null, action: { type: string; payload?: UserInfo }): UserInfo | null {
     switch (action.type) {
         case "SET_USER":
+            console.log("Setting user:", action.payload);
             return action.payload ?? null;
         case "CLEAR_USER":
             return null;
