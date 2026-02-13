@@ -124,11 +124,12 @@ mod tests {
             .create_async()
             .await;
 
-        let url = get_qrcode_url_base(&client, &server.url())
+        let data = get_qrcode_url_base(&client, &server.url())
             .await
             .expect("should succeed");
 
-        assert_eq!(url, "https://account.bilibili.com&");
+        assert_eq!(data.url, "https://account.bilibili.com&");
+        assert_eq!(data.qrcode_key, "37db98b9fe42c91c49b4516b3784befb");
     }
 
     #[tokio::test]
