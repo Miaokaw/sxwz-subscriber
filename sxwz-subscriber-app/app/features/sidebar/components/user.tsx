@@ -21,7 +21,7 @@ export function User({ user }: { user: UserInfo | null }) {
     }, [safeUser.avatar]);
 
     return (
-        <div className="flex items-center gap-2 text-left text-sm py-2 mx-1">
+        <div className="flex items-center gap-2 text-left text-sm py-2 mx-1 ">
             < Avatar className={`h-8 w-8 rounded-full ${user ? "" : "grayscale opacity-70"}`} >
                 <AvatarImage src={avatarBlobUrl} alt={safeUser.name} />
                 <AvatarFallback className="rounded-lg">U</AvatarFallback>

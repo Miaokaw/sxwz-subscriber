@@ -1,15 +1,15 @@
 mod bilibili_api;
 
-use reqwest::Client;
-use reqwest::ClientBuilder;
+use reqwest::{Client, ClientBuilder};
 use std::time::Duration;
-use tauri::State;
+use tauri::{AppHandle, Manager, State};
 
-use bilibili_api::login::{get_qrcode_status_base, get_qrcode_url_base, get_user_info_base};
+use bilibili_api::login::{
+    get_qrcode_status_base, get_qrcode_url_base, get_user_info_base, get_user_info_json_base,
+    logout_base,
+};
 
-use crate::bilibili_api::models::LoginStatusPostData;
-use crate::bilibili_api::models::QRCodeData;
-use crate::bilibili_api::models::UserInfoData;
+use crate::bilibili_api::models::{LoginStatusPostData, QRCodeData, UserInfoData};
 
 #[tauri::command]
 async fn get_qrcode_url(client: State<'_, Client>) -> Result<QRCodeData, String> {
@@ -18,10 +18,26 @@ async fn get_qrcode_url(client: State<'_, Client>) -> Result<QRCodeData, String>
 
 #[tauri::command]
 async fn get_user_info(
+    app: AppHandle,
     client: State<'_, Client>,
     sess_data: String,
 ) -> Result<UserInfoData, String> {
-    get_user_info_base(&client, "https://api.bilibili.com", sess_data).await
+    let dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
+    get_user_info_base(&client, dir, "https://api.bilibili.com", sess_data).await
+}
+
+#[tauri::command]
+fn get_user_info_json(app: AppHandle) -> Result<Option<UserInfoData>, String> {
+    let dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
+    let data = get_user_info_json_base(dir).map_err(|e| e.to_string())?;
+    Ok(data)
+}
+
+#[tauri::command]
+fn logout(app: AppHandle) -> Result<(), String> {
+    let dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
+    logout_base(dir)?;
+    Ok(())
 }
 
 #[tauri::command]
@@ -66,7 +82,9 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             get_qrcode_url,
             get_user_info,
+            get_user_info_json,
             get_qrcode_status,
+            logout,
             fetch_image
         ])
         .run(tauri::generate_context!())

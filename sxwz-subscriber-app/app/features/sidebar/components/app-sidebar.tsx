@@ -16,7 +16,7 @@ import {
 import { NavUser } from "./nav-user"
 
 import { NavLink } from "react-router"
-import { UserProvider } from "../hooks/UserContext"
+import { UserProvider } from "../hooks/use-user-context"
 
 export function AppSidebar() {
     const [activeItem, setActiveItem] = useState<typeof navItems.items[0] | undefined>(undefined);

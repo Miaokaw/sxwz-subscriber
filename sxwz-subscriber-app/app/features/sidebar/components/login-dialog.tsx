@@ -17,14 +17,14 @@ import { } from "@tauri-apps/api/image"
 
 import { LogInIcon } from "lucide-react"
 
-import { useState, useEffect, useRef, useContext, use } from "react"
+import { useState, useEffect, useRef, useContext } from "react"
 
 import { LoginStatus, statusMap, type LoginStatusPostData, type QRCodeData, type UserInfoData } from "../model/login"
-import { UserDispatchContext, UserContext } from "../hooks/UserContext"
+import { UserDispatchContext, UserContext } from "../hooks/use-user-context"
 
 
 export function LoginDialog() {
-    const [qrCode, setQrCode] = useState<string>("");
+    const [qrCode, setQrCode] = useState<string | null>(null);
     const [qrcodeKey, setQrCodeKey] = useState<string>("");
     const [status, setStatus] = useState<LoginStatus>(LoginStatus.Loading);
     const [open, setOpen] = useState(false);
@@ -58,6 +58,7 @@ export function LoginDialog() {
 
                 if (data.code === 0) {
                     setStatus(LoginStatus.Success);
+
                     const user = await invoke<UserInfoData>("get_user_info", { sessData: data.sess_data });
 
                     const userInfo = {
@@ -65,6 +66,7 @@ export function LoginDialog() {
                         uid: user.mid.toString(),
                         avatar: user.face,
                     }
+
                     userDispatch({ type: "SET_USER", payload: userInfo });
                     if (timerRef.current) clearInterval(timerRef.current);
                     timerRef.current = null;
@@ -83,11 +85,10 @@ export function LoginDialog() {
                     return;
                 }
 
-
                 setStatus(LoginStatus.WaitingForScan);
-            } catch (e) {
-                console.error("error", e);
-                return;
+            }
+            catch (e) {
+                console.log("Error polling QR code status:", e);
             }
         };
 

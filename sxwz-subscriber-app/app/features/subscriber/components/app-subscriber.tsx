@@ -20,7 +20,7 @@ export function AppSubscriber() {
     ]
 
     return (
-        <div className="grid gap-4 grid-cols-[repeat(auto-fit,minmax(240px,1fr))] px-4">
+        <div className="grid gap-4 grid-cols-[repeat(auto-fit,minmax(280px,1fr))] px-4">
             <SubCard info={subs[0]} />
             <SubCard info={subs[0]} />
             <SubCard info={subs[0]} />

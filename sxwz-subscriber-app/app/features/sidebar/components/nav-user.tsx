@@ -16,16 +16,35 @@ import {
     SidebarMenuItem,
 } from "~/components/ui/sidebar"
 
-import { useContext, useState } from "react"
+import { useContext, useEffect } from "react"
 
 import { User } from "./user"
 import { LoginDialog } from "./login-dialog"
 import { LogoutDialog } from "./logout-dialog"
 
-import { UserContext } from "../hooks/UserContext"
+import { UserContext, UserDispatchContext } from "../hooks/use-user-context"
+import { invoke } from "@tauri-apps/api/core"
+import type { UserInfo } from "../model/user-info"
+import type { UserInfoData } from "../model/login"
 
 export function NavUser() {
     const user = useContext(UserContext);
+    const userDispatch = useContext(UserDispatchContext);
+
+    useEffect(() => {
+        invoke<UserInfoData | null>("get_user_info_json").then((data) => {
+            if (data === null) return;
+            const userInfo = {
+                name: data.name,
+                uid: data.mid.toString(),
+                avatar: data.face,
+            } as UserInfo;
+            if (userInfo !== null) {
+                userDispatch({ type: "SET_USER", payload: userInfo });
+            }
+        });
+    }, []);
+
     return (
         <SidebarMenu>
             <SidebarMenuItem>
@@ -33,7 +52,7 @@ export function NavUser() {
                     <DropdownMenuTrigger asChild>
                         <SidebarMenuButton
                             size="lg"
-                            className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+                            className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground p-0 font-normal"
                         >
                             <User user={user} />
                         </SidebarMenuButton>
