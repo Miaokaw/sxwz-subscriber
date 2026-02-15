@@ -65,114 +65,52 @@ sxwz-subscriber/
 ## 核心功能模块
 
 ### 1. 侧边栏 (Sidebar)
+
 - 提供导航菜单
 - 包含用户信息展示
 - 支持主题切换
 
 ### 2. 订阅功能 (Subscriber)
-- 管理订阅列表
-- 显示订阅内容
-- 支持订阅源管理
 
-### 3. 动态管理 (Dynamics)
+- 管理订阅列表 todo
+- 显示订阅内容
+- 支持订阅源管理 todo
+
+### 3. 动态管理 (Dynamics) todo
+
 - 展示最新的动态信息
 - 支持动态过滤和搜索
-
-## 开发设置
-
-### 环境要求
-- Node.js >= 18.0
-- Rust >= 1.77.2
-- Bun (推荐) 或 npm/yarn/pnpm
-
-### 安装依赖
-
-```bash
-cd sxwz-subscriber-app
-bun install
-```
-
-### 开发运行
-
-```bash
-# 启动开发服务器
-bun run dev
-
-# 在另一个终端启动 Tauri 应用
-cd src-tauri
-cargo tauri dev
-```
-
-### 构建应用
-
-```bash
-# 构建前端
-bun run build
-
-# 构建完整 Tauri 应用
-cargo tauri build
-```
 
 ## 配置文件说明
 
 ### react-router.config.ts
+
 - 配置 SSR 设置 (当前为 SPA 模式)
 - 可根据需要启用服务端渲染
 
 ### vite.config.ts
+
 - 使用 Vite 进行快速开发构建
 - 集成 Tailwind CSS 和 TypeScript 路径映射
 
 ### tauri.conf.json
+
 - 应用基本信息配置
 - 窗口大小和标题设置
 - 安全策略配置
 
 ### Cargo.toml
+
 - Rust 依赖管理
 - Tauri 相关插件配置
 - 构建目标设置
 
 ## UI 组件库
 
-项目使用 shadcn/ui 组件库，包含以下常用组件：
-- Button, Input, Card
-- Dialog, Sheet, Tooltip
-- Sidebar, Navigation
-- Avatar, Badge, Switch
+项目使用 shadcn/ui 组件库
 
 ## API 和通信
 
 - 前后端通过 Tauri 提供的安全接口通信
 - 使用 Rust 实现高性能后端逻辑
 - 支持本地数据存储和网络请求
-
-## 部署
-
-### Docker 部署
-```bash
-# 构建 Docker 镜像
-docker build -t sxwz-subscriber .
-
-# 运行容器
-docker run -p 3000:3000 sxwz-subscriber
-```
-
-### 桌面应用分发
-使用 `cargo tauri build` 命令可以为不同平台构建原生安装包。
-
-## 贡献指南
-
-1. Fork 仓库
-2. 创建特性分支 (`git checkout -b feature/AmazingFeature`)
-3. 提交更改 (`git commit -m 'Add some AmazingFeature'`)
-4. 推送到分支 (`git push origin feature/AmazingFeature`)
-5. 开启 Pull Request
-
-## 许可证
-
-此项目采用 MIT 许可证 - 查看 [LICENSE](LICENSE) 文件了解详情。
-
-## 联系方式
-
-如有任何问题，请提交 Issue 或联系项目维护者。
