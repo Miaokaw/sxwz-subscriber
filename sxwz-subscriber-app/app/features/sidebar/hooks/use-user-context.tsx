@@ -1,9 +1,9 @@
 import { createContext, useReducer } from 'react';
 
-import { type UserInfo } from "../model/user-info"
+import type { UserInfoData } from '../model/login';
 
-export const UserContext = createContext<UserInfo | null>(null);
-export const UserDispatchContext = createContext<React.Dispatch<{ type: string; payload?: UserInfo }>>(() => { });
+export const UserContext = createContext<UserInfoData | null>(null);
+export const UserDispatchContext = createContext<React.Dispatch<{ type: string; payload?: UserInfoData }>>(() => { });
 
 export function UserProvider({ children }: { children: React.ReactNode }) {
     const [user, dispatch] = useReducer(
@@ -20,7 +20,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     )
 }
 
-function userReducer(user: UserInfo | null, action: { type: string; payload?: UserInfo }): UserInfo | null {
+function userReducer(user: UserInfoData | null, action: { type: string; payload?: UserInfoData }): UserInfoData | null {
     switch (action.type) {
         case "SET_USER":
             console.log("Setting user:", action.payload);
@@ -32,4 +32,4 @@ function userReducer(user: UserInfo | null, action: { type: string; payload?: Us
     }
 }
 
-const initialUser: UserInfo | null = null;
+const initialUser: UserInfoData | null = null;

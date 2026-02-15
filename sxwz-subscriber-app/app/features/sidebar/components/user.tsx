@@ -3,22 +3,21 @@ import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar";
 import { IdCardIcon } from "lucide-react";
 import { useState, useEffect } from "react";
 
-import { type UserInfo } from "../model/user-info"
+import { loadImageCached } from "~/lib/utils"
+import type { UserInfoData } from "../model/login";
 
-import { loadImage } from "~/lib/utils"
-
-export function User({ user }: { user: UserInfo | null }) {
-    const safeUser = user || { name: "未登录", uid: "N/A", avatar: "" };
+export function User({ user }: { user: UserInfoData | null }) {
+    const safeUser = user || { name: "未登录", mid: 0, face: "" } as UserInfoData;
 
     const [avatarBlobUrl, setAvatarBlobUrl] = useState<string | undefined>(undefined);
 
     useEffect(() => {
-        if (!safeUser.avatar) {
+        if (!safeUser.face) {
             setAvatarBlobUrl(undefined);
             return;
         }
-        loadImage(safeUser.avatar).then(setAvatarBlobUrl);
-    }, [safeUser.avatar]);
+        loadImageCached(safeUser.face).then(setAvatarBlobUrl);
+    }, [safeUser.face]);
 
     return (
         <div className="flex items-center gap-2 text-left text-sm py-2 mx-1 ">
@@ -29,7 +28,7 @@ export function User({ user }: { user: UserInfo | null }) {
             <div className="grid flex-1 text-left text-sm leading-tight">
                 <span className="truncate font-medium">{safeUser.name}</span>
                 <span className="text-muted-foreground truncate text-xs flex gap-0.5">
-                    <IdCardIcon size={16} />{safeUser.uid}
+                    <IdCardIcon size={16} />{safeUser.mid}
                 </span>
             </div>
         </div >

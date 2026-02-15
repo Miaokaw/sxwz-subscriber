@@ -18,14 +18,26 @@ import { ChartColumnIcon, ExternalLinkIcon, FlameIcon, HeartIcon, Loader2Icon, S
 
 import { useState, useEffect } from "react";
 import { Button } from "~/components/ui/button";
-import { loadImage } from "~/lib/utils";
+import { loadImageCached } from "~/lib/utils";
 
 export function SubCard({ info }: { info: SubInfo }) {
 
     const [coverBlobUrl, setCoverBlobUrl] = useState<string | null>(null);
 
     useEffect(() => {
-        loadImage(info.cover).then(setCoverBlobUrl);
+        let cancelled = false;
+
+        loadImageCached(info.cover)
+            .then((u) => {
+                if (!cancelled) setCoverBlobUrl(u);
+            })
+            .catch(() => {
+                if (!cancelled) setCoverBlobUrl(null);
+            });
+
+        return () => {
+            cancelled = true;
+        };
     }, [info.cover]);
 
     return (

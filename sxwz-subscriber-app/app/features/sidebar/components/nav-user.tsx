@@ -24,7 +24,6 @@ import { LogoutDialog } from "./logout-dialog"
 
 import { UserContext, UserDispatchContext } from "../hooks/use-user-context"
 import { invoke } from "@tauri-apps/api/core"
-import type { UserInfo } from "../model/user-info"
 import type { UserInfoData } from "../model/login"
 
 export function NavUser() {
@@ -32,16 +31,9 @@ export function NavUser() {
     const userDispatch = useContext(UserDispatchContext);
 
     useEffect(() => {
-        invoke<UserInfoData | null>("get_user_info_json").then((data) => {
-            if (data === null) return;
-            const userInfo = {
-                name: data.name,
-                uid: data.mid.toString(),
-                avatar: data.face,
-            } as UserInfo;
-            if (userInfo !== null) {
-                userDispatch({ type: "SET_USER", payload: userInfo });
-            }
+        invoke<UserInfoData | null>("get_user_info_json").then((userData) => {
+            if (userData === null) return;
+            userDispatch({ type: "SET_USER", payload: userData });
         });
     }, []);
 

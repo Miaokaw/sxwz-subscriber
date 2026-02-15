@@ -13,33 +13,31 @@ import { Label } from "~/components/ui/label"
 import QRCode from "qrcode"
 
 import { invoke } from "@tauri-apps/api/core"
-import { } from "@tauri-apps/api/image"
 
 import { LogInIcon } from "lucide-react"
 
 import { useState, useEffect, useRef, useContext } from "react"
 
 import { LoginStatus, statusMap, type LoginStatusPostData, type QRCodeData, type UserInfoData } from "../model/login"
-import { UserDispatchContext, UserContext } from "../hooks/use-user-context"
+import { UserDispatchContext } from "../hooks/use-user-context"
 
 
 export function LoginDialog() {
-    const [qrCode, setQrCode] = useState<string | null>(null);
-    const [qrcodeKey, setQrCodeKey] = useState<string>("");
+    const [qrCode, setQrCode] = useState<string | undefined>(undefined);
     const [status, setStatus] = useState<LoginStatus>(LoginStatus.Loading);
     const [open, setOpen] = useState(false);
 
-    const user = useContext(UserContext);
     const userDispatch = useContext(UserDispatchContext);
 
     const timerRef = useRef<NodeJS.Timeout | null>(null);
+    const qrcodeKey = useRef<string>("");
 
     function onRefresh() {
         const refresh = async () => {
             const data = await invoke<QRCodeData>("get_qrcode_url");
             const qrCode = await QRCode.toDataURL(data.url, { width: 200, margin: 1 });
             setQrCode(qrCode);
-            setQrCodeKey(data.qrcode_key);
+            qrcodeKey.current = data.qrcode_key;
         }
 
         setStatus(LoginStatus.Loading);
@@ -50,24 +48,20 @@ export function LoginDialog() {
     }
 
     useEffect(() => {
-        if (status === LoginStatus.Loading && user && open) return;
+        if (status === LoginStatus.Loading && open && qrcodeKey) return;
 
         const poll = async () => {
+
+
             try {
                 const data = await invoke<LoginStatusPostData>("get_qrcode_status", { qrcodeKey: qrcodeKey });
 
                 if (data.code === 0) {
                     setStatus(LoginStatus.Success);
 
-                    const user = await invoke<UserInfoData>("get_user_info", { sessData: data.sess_data });
+                    const userData = await invoke<UserInfoData>("get_user_info", { sessData: data.sess_data });
 
-                    const userInfo = {
-                        name: user.name,
-                        uid: user.mid.toString(),
-                        avatar: user.face,
-                    }
-
-                    userDispatch({ type: "SET_USER", payload: userInfo });
+                    userDispatch({ type: "SET_USER", payload: userData });
                     if (timerRef.current) clearInterval(timerRef.current);
                     timerRef.current = null;
                     return;
