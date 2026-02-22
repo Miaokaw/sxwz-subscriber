@@ -1,6 +1,6 @@
 import { createContext, useReducer } from 'react';
 
-import type { UserInfoData } from '../model/login';
+import { type UserInfoData } from '../model/login';
 
 export const UserContext = createContext<UserInfoData | null>(null);
 export const UserDispatchContext = createContext<React.Dispatch<{ type: string; payload?: UserInfoData }>>(() => { });

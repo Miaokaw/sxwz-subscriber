@@ -54,7 +54,7 @@ export function LoginDialog() {
 
 
             try {
-                const data = await invoke<LoginStatusPostData>("get_qrcode_status", { qrcodeKey: qrcodeKey });
+                const data = await invoke<LoginStatusPostData>("get_qrcode_status", { qrcodeKey: qrcodeKey.current });
 
                 if (data.code === 0) {
                     setStatus(LoginStatus.Success);

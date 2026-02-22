@@ -4,7 +4,7 @@
   "version": "0.1.0",
   "identifier": "com.sxwz.subscriber.app",
   "build": {
-    "frontendDist": "../build/client",
+    "frontendDist": "../build/",
     "devUrl": "http://localhost:5173",
     "beforeDevCommand": "bun run dev",
     "beforeBuildCommand": "bun run build"
@@ -13,8 +13,10 @@
     "windows": [
       {
         "title": "四禧丸子订阅姬",
-        "width": 1024,
-        "height": 768,
+        "width": 900,
+        "height": 500,
+        "minWidth": 400,
+        "minHeight": 500,
         "resizable": true,
         "fullscreen": false
       }
