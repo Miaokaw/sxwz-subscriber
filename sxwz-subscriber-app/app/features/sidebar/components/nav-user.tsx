@@ -23,18 +23,24 @@ import { LoginDialog } from "./login-dialog"
 import { LogoutDialog } from "./logout-dialog"
 
 import { UserContext, UserDispatchContext } from "../hooks/use-user-context"
-import { invoke } from "@tauri-apps/api/core"
-import type { UserInfoData } from "../model/login"
+import type { UserInfo } from "../model/login"
+import { Store } from "@tauri-apps/plugin-store"
+import { info } from "@tauri-apps/plugin-log"
+
 
 export function NavUser() {
     const user = useContext(UserContext);
     const userDispatch = useContext(UserDispatchContext);
 
     useEffect(() => {
-        invoke<UserInfoData | null>("get_user_info_json").then((userData) => {
+        const loadUser = async () => {
+            const store = await Store.load("user.bin");
+            const userData = (await store.get("user")) as UserInfo | null;
+            info(`Loaded user from store: ${userData?.name} (mid: ${userData?.mid})`);
             if (userData === null) return;
             userDispatch({ type: "SET_USER", payload: userData });
-        });
+        }
+        loadUser();
     }, []);
 
     return (

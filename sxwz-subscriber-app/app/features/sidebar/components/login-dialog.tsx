@@ -12,14 +12,17 @@ import { Label } from "~/components/ui/label"
 
 import QRCode from "qrcode"
 
-import { invoke } from "@tauri-apps/api/core"
+import { fetch } from "@tauri-apps/plugin-http"
+import { error, info } from "@tauri-apps/plugin-log"
 
 import { LogInIcon } from "lucide-react"
 
 import { useState, useEffect, useRef, useContext } from "react"
 
-import { LoginStatus, statusMap, type LoginStatusPostData, type QRCodeData, type UserInfoData } from "../model/login"
+import type { LoginQRCodeRes, LoginQRCodeStatusRes, UserInfoRes, UserInfo } from "../model/login";
+import { LoginStatus, statusMap, biliHeader, getBiliLoginedHeader } from "../model/login"
 import { UserDispatchContext } from "../hooks/use-user-context"
+import { invoke } from "@tauri-apps/api/core";
 
 
 export function LoginDialog() {
@@ -32,58 +35,154 @@ export function LoginDialog() {
     const timerRef = useRef<NodeJS.Timeout | null>(null);
     const qrcodeKey = useRef<string>("");
 
-    function onRefresh() {
+    async function getQRCodeURL() {
+        const response = await fetch("https://passport.bilibili.com/x/passport-login/web/qrcode/generate",
+            {
+                method: "GET",
+                headers: biliHeader,
+            });
+        if (response.status !== 200) {
+            error(`Failed to fetch QR code URL, status: ${response.status}`);
+            throw (new Error(`Failed to fetch QR code URL, status: ${response.status}`));
+        }
+
+        const res: LoginQRCodeRes = await response.json();
+        if (res.code !== 0) {
+            error(`Failed to fetch QR code URL, code: ${res.code}, message: ${res.message}`);
+            throw (new Error(`Failed to fetch QR code URL, code: ${res.code}, message: ${res.message}`));
+        }
+
+        info("Fetched QR code successfully");
+        info(`QR code URL: ${res.data.url}, QR code key: ${res.data.qrcode_key}`)
+
+        const qrCodeDataUrl = await QRCode.toDataURL(res.data.url, { width: 200, margin: 1 });
+        setQrCode(qrCodeDataUrl);
+        qrcodeKey.current = res.data.qrcode_key;
+    }
+
+    async function getQRCodeStatus() {
+        const response = await
+            fetch(`https://passport.bilibili.com/x/passport-login/web/qrcode/poll?qrcode_key=${qrcodeKey.current}`, {
+                method: "GET",
+                headers: biliHeader,
+            });
+
+        if (response.status !== 200) {
+            error(`Failed to fetch QR code status, status: ${response.status}`);
+            return -1;
+        }
+
+        const res: LoginQRCodeStatusRes = await response.json();
+        if (res.code !== 0) {
+            error(`Failed to fetch QR code status, code: ${res.code}, message: ${res.message}`);
+            return -1;
+        }
+
+        info("Fetched QR code status successfully");
+        info(`QR code status; message: ${res.data.message}, code: ${res.data.code}`);
+        if (res.data.code === 0) {
+            try {
+                const url = new URL(res.data.url);
+                const params = url.searchParams;
+                const sessData = params.get("SESSDATA");
+
+                if (!sessData) {
+                    error(`SESSDATA not found in URL: ${res.data.url}`);
+                    return 86038;
+                }
+
+                localStorage.setItem("biliSessData", sessData);
+
+                await invoke("save_sess_data", { sessData: sessData });
+
+            } catch {
+                error(`Failed to save SESSDATA from URL: ${res.data.url}`);
+                return 86038;
+            }
+        }
+
+        return res.data.code;
+    }
+
+    async function onRefresh() {
+
         const refresh = async () => {
-            const data = await invoke<QRCodeData>("get_qrcode_url");
-            const qrCode = await QRCode.toDataURL(data.url, { width: 200, margin: 1 });
-            setQrCode(qrCode);
-            qrcodeKey.current = data.qrcode_key;
+            await getQRCodeURL();
         }
 
         setStatus(LoginStatus.Loading);
 
-        refresh().then(() => {
-            setStatus(LoginStatus.WaitingForScan);
+        try {
+            await refresh();
+        } catch (e) {
+            return;
+        }
+        setStatus(LoginStatus.WaitingForScan);
+    }
+
+    async function getUserInfo() {
+        const biliSessData = localStorage.getItem("biliSessData");
+        if (!biliSessData) {
+            error("No SESSDATA found in localStorage");
+            throw new Error("No SESSDATA found");
+        }
+
+        const response = await fetch("https://api.bilibili.com/x/space/myinfo", {
+            method: "GET",
+            headers: getBiliLoginedHeader(biliSessData),
         });
+
+        if (response.status !== 200) {
+            error(`Failed to fetch user info, status: ${response.status}`);
+            throw new Error(`Failed to fetch user info, status: ${response.status}`);
+        }
+
+        const res: UserInfoRes = await response.json();
+        if (res.code !== 0) {
+            error(`Failed to fetch user info, code: ${res.code}, message: ${res.message}`);
+            throw new Error(`Failed to fetch user info, code: ${res.code}, message: ${res.message}`);
+        }
+
+        info("Fetched user info successfully");
+        info(`User info: mid: ${res.data.mid}, name: ${res.data.name}, face: ${res.data.face}`);
+
+        return {
+            mid: res.data.mid,
+            name: res.data.name,
+            face: res.data.face,
+        } as UserInfo;
     }
 
     useEffect(() => {
         if (status === LoginStatus.Loading && open && qrcodeKey) return;
 
         const poll = async () => {
+            const code = await getQRCodeStatus();
 
+            if (code === 0) {
+                setStatus(LoginStatus.Success);
 
-            try {
-                const data = await invoke<LoginStatusPostData>("get_qrcode_status", { qrcodeKey: qrcodeKey.current });
+                const userInfo = await getUserInfo();
 
-                if (data.code === 0) {
-                    setStatus(LoginStatus.Success);
-
-                    const userData = await invoke<UserInfoData>("get_user_info", { sessData: data.sess_data });
-
-                    userDispatch({ type: "SET_USER", payload: userData });
-                    if (timerRef.current) clearInterval(timerRef.current);
-                    timerRef.current = null;
-                    return;
-                }
-
-                if (data.code === 86090) {
-                    setStatus(LoginStatus.WaitingForConfirm);
-                    return;
-                }
-
-                if (data.code === 86038) {
-                    setStatus(LoginStatus.Outdated);
-                    if (timerRef.current) clearInterval(timerRef.current);
-                    timerRef.current = null;
-                    return;
-                }
-
-                setStatus(LoginStatus.WaitingForScan);
+                userDispatch({ type: "SET_USER", payload: userInfo });
+                if (timerRef.current) clearInterval(timerRef.current);
+                timerRef.current = null;
+                return;
             }
-            catch (e) {
-                console.log("Error polling QR code status:", e);
+
+            if (code === 86090) {
+                setStatus(LoginStatus.WaitingForConfirm);
+                return;
             }
+
+            if (code === 86038) {
+                setStatus(LoginStatus.Outdated);
+                if (timerRef.current) clearInterval(timerRef.current);
+                timerRef.current = null;
+                return;
+            }
+
+            setStatus(LoginStatus.WaitingForScan);
         };
 
         timerRef.current = setInterval(poll, 1000);

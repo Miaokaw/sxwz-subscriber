@@ -4,10 +4,12 @@ import { IdCardIcon } from "lucide-react";
 import { useState, useEffect } from "react";
 
 import { loadImageCached } from "~/lib/utils"
-import type { UserInfoData } from "../model/login";
+import type { UserInfo } from "../model/login";
 
-export function User({ user }: { user: UserInfoData | null }) {
-    const safeUser = user || { name: "未登录", mid: 0, face: "" } as UserInfoData;
+
+
+export function User({ user }: { user: UserInfo | null }) {
+    const safeUser = user || { name: "未登录", mid: 0, face: "" } as UserInfo;
 
     const [avatarBlobUrl, setAvatarBlobUrl] = useState<string | undefined>(undefined);
 

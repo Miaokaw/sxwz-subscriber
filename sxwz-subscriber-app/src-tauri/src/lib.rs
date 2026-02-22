@@ -1,51 +1,37 @@
-mod bilibili_api;
-
-use reqwest::{Client, ClientBuilder};
 use std::time::Duration;
-use tauri::{AppHandle, Manager, State};
+use tauri_plugin_http::reqwest;
+use tauri_plugin_http::reqwest::{Client, ClientBuilder};
+use tauri_plugin_log::{Target, TargetKind};
 
-use bilibili_api::login::{
-    get_qrcode_status_base, get_qrcode_url_base, get_user_info_base, get_user_info_json_base,
-    logout_base,
-};
+use keyring::Entry;
 
-use crate::bilibili_api::models::{LoginStatusPostData, QRCodeData, UserInfoData};
+const SERVICE: &str = "sxwz-subscriber-app";
+const USER: &str = "bilibili";
 
 #[tauri::command]
-async fn get_qrcode_url(client: State<'_, Client>) -> Result<QRCodeData, String> {
-    get_qrcode_url_base(&client, "https://passport.bilibili.com").await
+fn save_sess_data(sess_data: &str) -> Result<(), String> {
+    let entry = Entry::new(SERVICE, USER).map_err(|e| e.to_string())?;
+    entry.set_password(sess_data).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
-async fn get_user_info(
-    app: AppHandle,
-    client: State<'_, Client>,
-    sess_data: String,
-) -> Result<UserInfoData, String> {
-    let dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
-    get_user_info_base(&client, dir, "https://api.bilibili.com", sess_data).await
+fn get_sess_data() -> Result<Option<String>, String> {
+    let entry = Entry::new(SERVICE, USER).map_err(|e| e.to_string())?;
+    match entry.get_password() {
+        Ok(v) => Ok(Some(v)),
+        Err(keyring::Error::NoEntry) => Ok(None),
+        Err(e) => Err(e.to_string()),
+    }
 }
 
 #[tauri::command]
-fn get_user_info_json(app: AppHandle) -> Result<Option<UserInfoData>, String> {
-    let dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
-    let data = get_user_info_json_base(dir).map_err(|e| e.to_string())?;
-    Ok(data)
-}
-
-#[tauri::command]
-fn logout(app: AppHandle) -> Result<(), String> {
-    let dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
-    logout_base(dir)?;
-    Ok(())
-}
-
-#[tauri::command]
-async fn get_qrcode_status(
-    client: State<'_, Client>,
-    qrcode_key: String,
-) -> Result<LoginStatusPostData, String> {
-    get_qrcode_status_base(&client, "https://passport.bilibili.com", qrcode_key).await
+fn delete_sess_data() -> Result<(), String> {
+    let entry = Entry::new(SERVICE, USER).map_err(|e| e.to_string())?;
+    match entry.delete_credential() {
+        Ok(_) => Ok(()),
+        Err(keyring::Error::NoEntry) => Ok(()),
+        Err(e) => Err(e.to_string()),
+    }
 }
 
 #[tauri::command]
@@ -67,26 +53,24 @@ pub fn run() {
         .unwrap();
 
     tauri::Builder::default()
+        .plugin(tauri_plugin_http::init())
         .plugin(tauri_plugin_store::Builder::new().build())
         .plugin(tauri_plugin_shell::init())
-        .setup(|app| {
-            if cfg!(debug_assertions) {
-                app.handle().plugin(
-                    tauri_plugin_log::Builder::default()
-                        .level(log::LevelFilter::Info)
-                        .build(),
-                )?;
-            }
-            Ok(())
-        })
+        .plugin(
+            tauri_plugin_log::Builder::new()
+                .targets([
+                    Target::new(TargetKind::Stdout),
+                    Target::new(TargetKind::LogDir { file_name: None }),
+                    Target::new(TargetKind::Webview),
+                ])
+                .build(),
+        )
         .manage(bilibili_client)
         .invoke_handler(tauri::generate_handler![
-            get_qrcode_url,
-            get_user_info,
-            get_user_info_json,
-            get_qrcode_status,
-            logout,
-            fetch_image
+            fetch_image,
+            save_sess_data,
+            get_sess_data,
+            delete_sess_data
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

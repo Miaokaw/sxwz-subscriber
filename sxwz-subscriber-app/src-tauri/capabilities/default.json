@@ -7,6 +7,22 @@
   ],
   "permissions": [
     "core:default",
-    "shell:allow-open"
+    "shell:allow-open",
+    "store:allow-get",
+    "store:allow-set",
+    "store:allow-save",
+    "store:allow-load",
+    "log:default",
+    {
+      "identifier": "http:default",
+      "allow": [
+        {
+          "url": "https://passport.bilibili.com"
+        },
+        {
+          "url": "https://api.bilibili.com"
+        }
+      ]
+    }
   ]
 }
