@@ -5,14 +5,13 @@ import { LogOutIcon } from "lucide-react"
 
 import { useContext } from "react"
 
-import { UserDispatchContext } from "../hooks/use-user-context"
-
+import { useUserStore } from "../hooks/use-user-store";
 
 export function LogoutDialog() {
+    const clearUser = useUserStore((state) => state.clearUser);
 
-    const userDispatch = useContext(UserDispatchContext);
     function onLogout() {
-        userDispatch({ type: "CLEAR_USER" });
+        clearUser();
     }
 
     return (

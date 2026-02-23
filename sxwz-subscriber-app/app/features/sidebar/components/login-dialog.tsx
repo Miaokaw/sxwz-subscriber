@@ -12,6 +12,7 @@ import { Label } from "~/components/ui/label"
 
 import QRCode from "qrcode"
 
+import { invoke } from "@tauri-apps/api/core";
 import { fetch } from "@tauri-apps/plugin-http"
 import { error, info } from "@tauri-apps/plugin-log"
 
@@ -21,8 +22,7 @@ import { useState, useEffect, useRef, useContext } from "react"
 
 import type { LoginQRCodeRes, LoginQRCodeStatusRes, UserInfoRes, UserInfo } from "../model/login";
 import { LoginStatus, statusMap, biliHeader, getBiliLoginedHeader } from "../model/login"
-import { UserDispatchContext } from "../hooks/use-user-context"
-import { invoke } from "@tauri-apps/api/core";
+import { useUserStore } from "../hooks/use-user-store";
 
 
 export function LoginDialog() {
@@ -30,7 +30,7 @@ export function LoginDialog() {
     const [status, setStatus] = useState<LoginStatus>(LoginStatus.Loading);
     const [open, setOpen] = useState(false);
 
-    const userDispatch = useContext(UserDispatchContext);
+    const setUser = useUserStore((state) => state.setUser);
 
     const timerRef = useRef<NodeJS.Timeout | null>(null);
     const qrcodeKey = useRef<string>("");
@@ -164,7 +164,7 @@ export function LoginDialog() {
 
                 const userInfo = await getUserInfo();
 
-                userDispatch({ type: "SET_USER", payload: userInfo });
+                setUser(userInfo);
                 if (timerRef.current) clearInterval(timerRef.current);
                 timerRef.current = null;
                 return;

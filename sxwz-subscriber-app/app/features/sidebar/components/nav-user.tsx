@@ -18,29 +18,33 @@ import {
 
 import { useContext, useEffect } from "react"
 
+import { info, error } from "@tauri-apps/plugin-log"
+import { Store } from "@tauri-apps/plugin-store"
+
 import { User } from "./user"
 import { LoginDialog } from "./login-dialog"
 import { LogoutDialog } from "./logout-dialog"
-
-import { UserContext, UserDispatchContext } from "../hooks/use-user-context"
 import type { UserInfo } from "../model/login"
-import { Store } from "@tauri-apps/plugin-store"
-import { info } from "@tauri-apps/plugin-log"
+import { useUserStore } from "../hooks/use-user-store"
 
 
 export function NavUser() {
-    const user = useContext(UserContext);
-    const userDispatch = useContext(UserDispatchContext);
+    const user = useUserStore((state) => state.user);
+    const setUser = useUserStore((state) => state.setUser);
 
     useEffect(() => {
-        const loadUser = async () => {
-            const store = await Store.load("user.bin");
-            const userData = (await store.get("user")) as UserInfo | null;
-            info(`Loaded user from store: ${userData?.name} (mid: ${userData?.mid})`);
-            if (userData === null) return;
-            userDispatch({ type: "SET_USER", payload: userData });
-        }
-        loadUser();
+        Store.load("user.bin").then((store) => {
+            store.get("user").then((userData) => {
+                info(`Loaded user from store: ${(userData as UserInfo)?.name} (mid: ${(userData as UserInfo)?.mid})`);
+                if (userData === null) {
+                    info("No user data found in store.");
+                    return;
+                }
+                setUser(userData as UserInfo);
+            });
+        }).catch((e) => {
+            error(`Failed to load user from store: ${e}`);
+        });
     }, []);
 
     return (
