@@ -21,8 +21,12 @@
         },
         {
           "url": "https://api.bilibili.com"
+        },
+        {
+          "url": "https://api.live.bilibili.com"
         }
       ]
-    }
+    },
+    "notification:default"
   ]
 }

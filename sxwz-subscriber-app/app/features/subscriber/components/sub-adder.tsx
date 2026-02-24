@@ -10,6 +10,7 @@ export function SubAdder({ onAdd }: { onAdd: (query: string) => void }) {
     const handleAdd = () => {
         if (query.trim()) {
             onAdd(query);
+            setQuery('');
         }
     };
 

@@ -1,93 +1,116 @@
-import { type SubInfo } from "../model/sub-info";
+import { type RoomInfo, type RoomInfoRes, type Sub } from "../model/sub-info";
 import { Tabs, TabsList, TabsTrigger } from "~/components/ui/tabs";
-import { Input } from "~/components/ui/input";
-import { Button } from "~/components/ui/button";
-import { PlusIcon, SearchIcon, XIcon } from "lucide-react";
-import { useState } from "react";
 
 import { SubTabsContent } from "./sub-tabs-content";
 import { SubAdder } from "./sub-adder";
-import { invoke } from "@tauri-apps/api/core";
+import { error, info } from "@tauri-apps/plugin-log";
+import { Store } from "@tauri-apps/plugin-store";
+import { fetch } from "@tauri-apps/plugin-http"
 
+import { useEffect, useState } from "react";
+
+import { biliHeader } from "~/lib/utils";
+import { useSubsStore } from "~/hooks/use-subs-store";
 
 export function AppSubscriber() {
-    const allSubs: SubInfo[] = [
-        {
-            name: "BLGKnight",
-            roomId: "31934797",
-            title: "打会组排",
-            cover: "https://i0.hdslb.com/bfs/live/new_room_cover/51bfb78f002dc6919e477f056c3dc39a41713ac6.jpg",
-            popularity: 93121,
-            users: 1312,
-            maxUsers: 1455,
-            fans: 1000,
-            captains: 50,
-            isTop: true,
-            isLive: false,
-        },
-        {
-            name: "AnotherStreamer",
-            roomId: "31934798",
-            title: "另一个直播间",
-            cover: "https://i0.hdslb.com/bfs/live/new_room_cover/51bfb78f002dc6919e477f056c3dc39a41713ac6.jpg",
-            popularity: 85000,
-            users: 1200,
-            maxUsers: 1400,
-            fans: 950,
-            captains: 45,
-            isTop: false,
-            isLive: false,
-        },
-        {
-            name: "ThirdStreamer",
-            roomId: "31934799",
-            title: "第三个直播间",
-            cover: "https://i0.hdslb.com/bfs/live/new_room_cover/51bfb78f002dc6919e477f056c3dc39a41713ac6.jpg",
-            popularity: 75000,
-            users: 1100,
-            maxUsers: 1300,
-            fans: 850,
-            captains: 40,
-            isTop: true,
-            isLive: false,
-        },
-        {
-            name: "LiveStreamer",
-            roomId: "31934800",
-            title: "正在直播",
-            cover: "https://i0.hdslb.com/bfs/live/new_room_cover/51bfb78f002dc6919e477f056c3dc39a41713ac6.jpg",
-            popularity: 120000,
-            users: 1500,
-            maxUsers: 1600,
-            fans: 1200,
-            captains: 60,
-            isTop: true,
-            isLive: true,
+    const allSubs = useSubsStore(state => state.subs);
+    const setAllSubs = useSubsStore(state => state.setSubs);
+    const saveAllSubs = useSubsStore(state => state.saveSubs);
+    const [offLivingSubs, setOffLivingSubs] = useState<Sub[]>([]);
+    const [onLivingSubs, setOnLivingSubs] = useState<Sub[]>([]);
+
+    async function getRoomInfo(roomId: string): Promise<RoomInfo> {
+        const response = await fetch(`https://api.live.bilibili.com/xlive/web-room/v1/index/getInfoByRoom?room_id=${roomId}`, {
+            method: "GET",
+            headers: biliHeader,
+        });
+
+        if (response.status !== 200) {
+            error(`Failed to fetch room info for room ID: ${roomId}, status: ${response.status}`);
+            throw new Error(`Failed to fetch room info for room ID: ${roomId}, status: ${response.status}`);
         }
-    ]
-    const offLivingSubs = allSubs.filter(sub => !sub.isLive);
-    const onLivingSubs = allSubs.filter(sub => sub.isLive);
+
+        const res: RoomInfoRes = await response.json();
+        if (res.code !== 0) {
+            error(`Failed to fetch QR code URL, code: ${res.code}, message: ${res.message}`);
+            throw (new Error(`Failed to fetch QR code URL, code: ${res.code}, message: ${res.message}`));
+        }
+        info(`Fetched room info successfully for room ID: ${roomId}`);
+
+        const roomInfo = {
+            name: res.data.anchor_info.base_info.uname,
+            roomId: res.data.room_info.room_id,
+            uid: res.data.room_info.uid,
+            title: res.data.room_info.title,
+            liveStartTime: res.data.room_info.live_start_time,
+            cover: res.data.room_info.cover,
+            keyframe: res.data.room_info.keyframe,
+            popularity: res.data.popularity.popularity,
+            users: res.data.room_rank_info.user_rank_entry.user_contribution_rank_entry.count,
+            watched: res.data.watched_show.num,
+            fansclub: res.data.anchor_info.medal_info.fansclub,
+            likes: res.data.like_info_v3.total_likes,
+            attention: res.data.anchor_info.relation_info.attention,
+            captains: res.data.guard_info.count,
+        } as RoomInfo;
+        return roomInfo;
+    }
+
+    useEffect(() => {
+        const onLiving = allSubs.filter(sub => sub.isLive);
+        const offLiving = allSubs.filter(sub => !sub.isLive);
+
+        setOnLivingSubs(onLiving);
+        setOffLivingSubs(offLiving);
+    }, [allSubs]);
+
+    useEffect(() => {
+        Store.load("subs.bin").then(store => {
+            store.get("subs").then(subs => {
+                setAllSubs(subs as Sub[] || []);
+            })
+        });
+    }, [])
 
     function extractRoomId(url: string): string | null {
         try {
+            if (/^\d+$/.test(url))
+                return url;
+
+            if (!url.startsWith("https://live.bilibili.com/"))
+                return null;
+
             const parsedUrl = new URL(url);
             const pathSegments = parsedUrl.pathname.split("/").filter(Boolean); // 分割路径并过滤空段
-            const roomId = pathSegments[0]; // 取第一个路径段
-            return /^\d+$/.test(roomId) ? roomId : null; // 确保是数字
+            const roomId = /^\d+$/.test(pathSegments[0]) ? pathSegments[0] : null; // 取第一个路径段
+            return roomId;
         } catch (e) {
-            console.error("Invalid URL:", e);
+            error(`Failed to parse URL: ${url}, error: ${e}`);
             return null;
         }
     }
 
-    const onAdd = (query: string) => {
-        console.log(`Adding new subscriber with query: ${query}`);
+    const onAdd = async (query: string) => {
         const roomId = extractRoomId(query);
-        console.log(`Extracted room ID: ${roomId}`);
         if (roomId) {
-            const subInfo = invoke<SubInfo>("get_sub_info", { roomId: roomId });
-
-            // TODO
+            info(`Extracted room ID: ${roomId} from query: ${query}`);
+            Store.load("subs.bin").then(store => {
+            });
+            const roomInfo = await getRoomInfo(roomId);
+            if (allSubs.some(sub => sub.roomId === roomInfo.roomId)) {
+                info(`Room ID: ${roomInfo.roomId} already exists in subs, skipping add`);
+                return;
+            }
+            const sub = {
+                roomId: roomInfo.roomId,
+                uid: roomInfo.uid,
+                isTop: false,
+                isLive: false,
+            }
+            const newSubs = [...allSubs, sub];
+            setAllSubs(newSubs);
+            info(`Added new room info for room ID: ${roomInfo.roomId}, name: ${roomInfo.name}`);
+            saveAllSubs();
         }
         else {
             // TODO! 弹窗提醒输入错误

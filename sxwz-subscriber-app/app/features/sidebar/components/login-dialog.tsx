@@ -21,8 +21,9 @@ import { LogInIcon } from "lucide-react"
 import { useState, useEffect, useRef, useContext } from "react"
 
 import type { LoginQRCodeRes, LoginQRCodeStatusRes, UserInfoRes, UserInfo } from "../model/login";
-import { LoginStatus, statusMap, biliHeader, getBiliLoginedHeader } from "../model/login"
-import { useUserStore } from "../hooks/use-user-store";
+import { LoginStatus, statusMap } from "../model/login"
+import { biliHeader, getBiliLoginedHeader } from "~/lib/utils";
+import { useUserStore } from "~/hooks/use-user-store";
 
 
 export function LoginDialog() {
@@ -31,6 +32,7 @@ export function LoginDialog() {
     const [open, setOpen] = useState(false);
 
     const setUser = useUserStore((state) => state.setUser);
+    const saveCookie = useUserStore((state) => state.saveCookie);
 
     const timerRef = useRef<NodeJS.Timeout | null>(null);
     const qrcodeKey = useRef<string>("");
@@ -90,11 +92,7 @@ export function LoginDialog() {
                     error(`SESSDATA not found in URL: ${res.data.url}`);
                     return 86038;
                 }
-
-                localStorage.setItem("biliSessData", sessData);
-
-                await invoke("save_sess_data", { sessData: sessData });
-
+                saveCookie(sessData);
             } catch {
                 error(`Failed to save SESSDATA from URL: ${res.data.url}`);
                 return 86038;
@@ -121,7 +119,7 @@ export function LoginDialog() {
     }
 
     async function getUserInfo() {
-        const biliSessData = localStorage.getItem("biliSessData");
+        const biliSessData = useUserStore.getState().SESSDATA;
         if (!biliSessData) {
             error("No SESSDATA found in localStorage");
             throw new Error("No SESSDATA found");

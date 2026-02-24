@@ -3,15 +3,15 @@ import { DropdownMenuItem } from "~/components/ui/dropdown-menu"
 
 import { LogOutIcon } from "lucide-react"
 
-import { useContext } from "react"
-
-import { useUserStore } from "../hooks/use-user-store";
+import { useUserStore } from "../../../hooks/use-user-store";
 
 export function LogoutDialog() {
     const clearUser = useUserStore((state) => state.clearUser);
+    const deleteCookie = useUserStore((state) => state.deleteCookie);
 
     function onLogout() {
         clearUser();
+        deleteCookie();
     }
 
     return (

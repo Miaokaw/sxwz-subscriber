@@ -25,12 +25,14 @@ import { User } from "./user"
 import { LoginDialog } from "./login-dialog"
 import { LogoutDialog } from "./logout-dialog"
 import type { UserInfo } from "../model/login"
-import { useUserStore } from "../hooks/use-user-store"
+
+import { useUserStore } from "~/hooks/use-user-store"
 
 
 export function NavUser() {
     const user = useUserStore((state) => state.user);
     const setUser = useUserStore((state) => state.setUser);
+    const loadCookie = useUserStore((state) => state.loadCookie);
 
     useEffect(() => {
         Store.load("user.bin").then((store) => {
@@ -41,6 +43,7 @@ export function NavUser() {
                     return;
                 }
                 setUser(userData as UserInfo);
+                loadCookie();
             });
         }).catch((e) => {
             error(`Failed to load user from store: ${e}`);

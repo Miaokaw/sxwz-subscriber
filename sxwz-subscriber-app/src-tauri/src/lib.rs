@@ -1,6 +1,4 @@
-use std::time::Duration;
 use tauri_plugin_http::reqwest;
-use tauri_plugin_http::reqwest::{Client, ClientBuilder};
 use tauri_plugin_log::{Target, TargetKind};
 
 use keyring::Entry;
@@ -47,12 +45,8 @@ async fn fetch_image(url: String) -> Result<Vec<u8>, String> {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    let bilibili_client = ClientBuilder::new()
-        .timeout(Duration::from_secs(3))
-        .build()
-        .unwrap();
-
     tauri::Builder::default()
+        .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_http::init())
         .plugin(tauri_plugin_store::Builder::new().build())
         .plugin(tauri_plugin_shell::init())
@@ -65,7 +59,6 @@ pub fn run() {
                 ])
                 .build(),
         )
-        .manage(bilibili_client)
         .invoke_handler(tauri::generate_handler![
             fetch_image,
             save_sess_data,

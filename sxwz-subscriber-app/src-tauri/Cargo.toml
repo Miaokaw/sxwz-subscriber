@@ -1,8 +1,8 @@
 [package]
-name = "app"
+name = "四禧丸子订阅姬"
 version = "0.1.0"
-description = "A Tauri App"
-authors = ["you"]
+description = "四禧丸子订阅姬是一个基于Tauri框架开发的桌面应用程序，旨在帮助用户管理和订阅各种内容。它提供了一个用户友好的界面，允许用户轻松地添加、编辑和删除订阅"
+authors = ["MSuperHero"]
 license = ""
 repository = ""
 edition = "2021"
@@ -28,6 +28,7 @@ tauri-plugin-shell = "2.3.5"
 tauri-plugin-store = "2.4.2"
 tauri-plugin-http = { version = "2.5.7", features = ["unsafe-headers"] }
 keyring = "3.6.3"
+tauri-plugin-notification = "2"
 
 [dev-dependencies]
 mockito = "1.7.2"
